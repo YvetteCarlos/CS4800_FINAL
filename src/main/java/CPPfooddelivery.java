@@ -104,7 +104,7 @@ import java.util.List;
             return operatingCounty;
         }
     }
-
+    //factory design pattern
     interface memberFactory{
         Member createMember(String name, String address, String county, String infoHolder1, String infoHolder2);
     }
@@ -137,13 +137,13 @@ import java.util.List;
                 orderInfoList = new ArrayList<>();
             }
 
-            public orderManagementSystem getOrder(){
+     //singleton design for ordermanagementsystem
+     public orderManagementSystem getOrder(){
                 if(order == null){
                     order = new orderManagementSystem();
                 }
                 return order;
             }
-
             public void controlOrder(OrderInfo orderInfo){
                 orderInfoList.add(orderInfo);
                 System.out.println("Ordered from" + orderInfo.getRestaurant().getName());
