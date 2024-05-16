@@ -1,5 +1,3 @@
-public class CPPfooddelivery {
-    //singleton
 
     class orderManagementSystem{
         private static orderManagementSystem order;
@@ -19,6 +17,9 @@ public class CPPfooddelivery {
     }
 
     interface Member {
+    String getName();
+    String getAddress();
+    String getCounty();
 
     }
 
@@ -34,6 +35,23 @@ public class CPPfooddelivery {
             this.dietaryRestrictions = dietaryRestrictions;
         }
 
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getAddress() {
+            return address;
+        }
+
+        @Override
+        public String getCounty() {
+            return county;
+        }
+
+        public String getDietaryRestrictions(){
+            return dietaryRestrictions;
     }
 
     class Restaurants implements Member {
@@ -49,6 +67,29 @@ public class CPPfooddelivery {
             this.operatingHours = operatingHours;
             this.cuisineType = cuisineType;
         }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getAddress() {
+            return address;
+        }
+
+        @Override
+        public String getCounty() {
+            return county;
+        }
+
+        public String getOperatingHours(){
+            return  operatingHours;
+        }
+
+        public String getCuisineType(){
+            return  cuisineType;
+        }
     }
 
     class Drivers implements Member {
@@ -63,6 +104,20 @@ public class CPPfooddelivery {
 
         }
 
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getAddress() {
+            return address;
+        }
+
+        @Override
+        public String getCounty() {
+            return operatingCounty;
+        }
     }
 
     interface memberFactory{
