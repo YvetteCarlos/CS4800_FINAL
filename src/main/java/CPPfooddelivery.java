@@ -219,12 +219,12 @@ class OrderManagementSystem {
     private static OrderManagementSystem order;
     private List<OrderInfo> orderInfoList;
 
-    private OrderManagementSystem() {
+    public OrderManagementSystem() {
         orderInfoList = new ArrayList<>();
     }
 
     //singleton design for ordermanagementsystem
-    public OrderManagementSystem getOrder() {
+    public static synchronized OrderManagementSystem getOrder() {
         if (order == null) {
             order = new OrderManagementSystem();
         }
@@ -235,19 +235,22 @@ class OrderManagementSystem {
         orderInfoList.add(orderInfo);
         System.out.println("Ordered from" + orderInfo.getRestaurant().getName());
         Drivers driver = orderInfo.getDriver();
+        if (driver == null) {
+            System.out.println("Cannot find driver for the order");
+        }
         System.out.println(driver.getName() + " will deliver your order.");
         orderInfo.setOrderTime("Ordered at:" + getCurrentTime());
         orderInfo.setPickupTime("Pickup time:" + getPickupTime());
         orderInfo.setDeliveryTime("Delivery time:" + getDeliveryTime());
     }
 
-    private String getCurrentTime() {
+    public String getCurrentTime() {
         LocalDateTime current = LocalDateTime.now();
         DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
         return current.format(formatting);
     }
 
-    private String getPickupTime() {
+    public String getPickupTime() {
         LocalDateTime pickupTime = LocalDateTime.now().plusMinutes(15);
         DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
         return pickupTime.format(formatting);
@@ -380,13 +383,17 @@ class CPPFoodDelivery { //Aaron: please implement methods that register the rest
 // Facade's purpose to simplify customer interactions
 class FoodDeliveryFacade {
     private CPPFoodDelivery cppFoodDelivery;
+    private OrderManagementSystem orderManagementSystem;
 
-    public FoodDeliveryFacade(CPPFoodDelivery cppFoodDelivery) {
+    public FoodDeliveryFacade(CPPFoodDelivery cppFoodDelivery, OrderManagementSystem orderManagementSystem) {
         this.cppFoodDelivery = cppFoodDelivery;
+        this.orderManagementSystem = orderManagementSystem;
     }
     public OrderInfo orderMeal(Customers customer, Restaurants restaurant, int mealNum, Boolean drink, Boolean sauce, Boolean side) {
         // Creates orderInfo to return
         OrderInfo orderInfo = new OrderInfo();
+        orderInfo.setCustomer(customer);
+        orderInfo.setRestaurant(restaurant);
         // Gets list of restaurants from cppFoodDelivery
         List<Restaurants> restaurants = cppFoodDelivery.getRestaurants();
         // Check if the restaurant is registered
@@ -395,8 +402,9 @@ class FoodDeliveryFacade {
             System.exit(0);
         }
         // Check if restaurant is open using restaurant.checkTime();
+        String orderTime = orderManagementSystem.getCurrentTime();
         try {
-            restaurant.checkTime("INSERT ORDER TIME HERE");
+            restaurant.checkTime(orderTime);
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
@@ -414,8 +422,9 @@ class FoodDeliveryFacade {
         // Add all info to the orderInfo
         orderInfo.setCustomer(customer);
         orderInfo.setRestaurant(restaurant);
+        String pickupTime = orderManagementSystem.getPickupTime();
         try {
-            orderInfo.setDriver(cppFoodDelivery.lookForDriver("INSERT PICKUP TIME HERE", restaurant.getCounty())); // Implement method that gets a driver during their shift that's in the county
+            orderInfo.setDriver(cppFoodDelivery.lookForDriver(pickupTime, restaurant.getCounty())); // Implement method that gets a driver during their shift that's in the county
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
@@ -423,6 +432,7 @@ class FoodDeliveryFacade {
         List<Meal> mealList = new ArrayList<>();
         mealList.add(meal);
         orderInfo.setFoodItems(mealList);
+        orderManagementSystem.controlOrder(orderInfo);
         return orderInfo;
     }
 }
@@ -809,6 +819,7 @@ class Side extends Meal {
 class Main{
     public static void main(String[] args){
         CPPFoodDelivery cppFoodDelivery = new CPPFoodDelivery();
+        OrderManagementSystem orderManagementSystem = new OrderManagementSystem();
         Customers customer1 = new Customers("customer1", "address1", "LA County", "None");
         Customers customer2 = new Customers("customer2", "address2", "LA County", "Paleo");
         Customers customer3 = new Customers("customer3", "address3", "LA County", "Vegan");
@@ -867,7 +878,7 @@ class Main{
 
 
 
-        FoodDeliveryFacade facade = new FoodDeliveryFacade(cppFoodDelivery);
+        FoodDeliveryFacade facade = new FoodDeliveryFacade(cppFoodDelivery, orderManagementSystem);
         OrderInfo order1 = facade.orderMeal(customer1, restaurant1, 1, Boolean.TRUE, Boolean.TRUE, Boolean.TRUE);
         OrderInfo order2 = facade.orderMeal(customer2, restaurant1, 2, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE);
         OrderInfo order3 = facade.orderMeal(customer3, restaurant2, 3, Boolean.TRUE, Boolean.FALSE, Boolean.FALSE);
