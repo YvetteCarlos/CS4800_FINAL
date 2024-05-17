@@ -1,9 +1,8 @@
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 interface Member {
     String getName();
@@ -50,6 +49,8 @@ class Restaurants implements Member {
     private String address;
     private String county;
     private String operatingHours;
+    private Date startHours;
+    private Date endHours;
     private String cuisineType;
     private Menu menu;
 
@@ -58,8 +59,31 @@ class Restaurants implements Member {
         this.address = address;
         this.county = county;
         this.operatingHours = operatingHours;
+        SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+        try {
+            this.startHours = parser.parse(operatingHours.substring(0, operatingHours.indexOf("-")));
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            this.endHours = parser.parse(operatingHours.substring(operatingHours.indexOf("-")+1));
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
         this.cuisineType = cuisineType;
         this.menu = menu;
+    }
+
+    public Boolean checkTime(String time) throws ParseException {
+        SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+        Date pickup = parser.parse(time);
+        Date start = this.startHours;
+        Date end = this.endHours;
+        if (start.before(pickup))
+            return Boolean.FALSE;
+        if (end.after(pickup))
+            return Boolean.FALSE;
+        return Boolean.TRUE;
     }
 
     @Override
@@ -87,18 +111,39 @@ class Restaurants implements Member {
 
     public Menu getMenu() {
         return menu; }
+
+    public Date getStartHours() {
+        return startHours;
+    }
+
+    public Date getEndHours() {
+        return endHours;
+    }
 }
 
 class Drivers implements Member {
     private String name;
     private String operatingCounty;
     private String address;
+    private Shift shift;
 
-    public Drivers(String name, String address, String operatingCounty) {
+    public Drivers(String name, String address, String operatingCounty, String shift) {
         this.name = name;
         this.address = address;
         this.operatingCounty = operatingCounty;
+        this.shift = Shift.valueOf(shift);
+    }
 
+    public Boolean checkTime(String time) throws ParseException {
+        SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+        Date pickup = parser.parse(time);
+        Date start = shift.getStart();
+        Date end = shift.getEnd();
+        if (start.before(pickup))
+            return Boolean.FALSE;
+        if (end.after(pickup))
+            return Boolean.FALSE;
+        return Boolean.TRUE;
     }
 
     @Override
@@ -114,6 +159,33 @@ class Drivers implements Member {
     @Override
     public String getCounty() {
         return operatingCounty;
+    }
+
+    public Shift getShift() {
+        return shift;
+    }
+}
+
+enum Shift {
+    FIRST ("8:00", "15:59"),
+    SECOND ("16:00", "23:59"),
+    THIRD ("0:00", "7:59");
+
+    private String startTime;
+    private String endTime;
+
+    Shift(String startTime, String endTime) {
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+    Date getStart() throws ParseException {
+        SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+        return parser.parse(this.startTime);
+    }
+
+    Date getEnd() throws ParseException {
+        SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+        return parser.parse(this.endTime);
     }
 }
 
@@ -138,23 +210,23 @@ class restaurantFactory implements memberFactory {
 
 class driverFactory implements memberFactory {
     @Override
-    public Member createMember(String name, String address, String county, String empty1, String empty2, Menu empt3) {
-        return new Drivers(name, address, county);
+    public Member createMember(String name, String address, String county, String shift, String empty2, Menu empt3) {
+        return new Drivers(name, address, county, shift);
     }
 }
 
-class orderManagementSystem {
-    private static orderManagementSystem order;
+class OrderManagementSystem {
+    private static OrderManagementSystem order;
     private List<OrderInfo> orderInfoList;
 
-    private orderManagementSystem() {
+    private OrderManagementSystem() {
         orderInfoList = new ArrayList<>();
     }
 
     //singleton design for ordermanagementsystem
-    public orderManagementSystem getOrder() {
+    public OrderManagementSystem getOrder() {
         if (order == null) {
-            order = new orderManagementSystem();
+            order = new OrderManagementSystem();
         }
         return order;
     }
@@ -271,6 +343,15 @@ class CPPFoodDelivery { //Aaron: please implement methods that register the rest
         this.drivers = new ArrayList<>();
     }
 
+    public Drivers lookForDriver(String time, String county) throws ParseException {
+        for(Drivers d : drivers) {
+            if (d.checkTime(time) && d.getCounty().equals(county)) {
+                return d;
+            }
+        }
+        return null;
+    }
+
     public void registerRestaurant(Restaurants restaurant) {
         this.restaurants.add(restaurant);
     }
@@ -303,16 +384,26 @@ class FoodDeliveryFacade {
     public FoodDeliveryFacade(CPPFoodDelivery cppFoodDelivery) {
         this.cppFoodDelivery = cppFoodDelivery;
     }
-    public OrderInfo orderMeal(Customers customer, Restaurants restaurant, int mealNum, String dietary, Boolean drink, Boolean sauce, Boolean side) {
+    public OrderInfo orderMeal(Customers customer, Restaurants restaurant, int mealNum, Boolean drink, Boolean sauce, Boolean side) {
+        // Creates orderInfo to return
         OrderInfo orderInfo = new OrderInfo();
+        // Gets list of restaurants from cppFoodDelivery
         List<Restaurants> restaurants = cppFoodDelivery.getRestaurants();
+        // Check if the restaurant is registered
         if(!restaurants.contains(restaurant)) {
             System.out.println("Restaurant not registered");
             System.exit(0);
         }
+        // Check if restaurant is open using restaurant.checkTime();
+        try {
+            restaurant.checkTime("INSERT ORDER TIME HERE");
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        // Get the menu from the restaurant and order the specific meal with changes according to diet and add ons
         Menu menu = restaurants.get(restaurants.indexOf(restaurant)).getMenu();
         FoodItem food = menu.chooseMeal(mealNum);
-        food = food.checkDietary(dietary);
+        food = food.checkDietary(customer.getDietaryRestrictions());
         Meal meal = new Meal(food);
         if (drink)
             meal = new Drink(meal);
@@ -320,9 +411,15 @@ class FoodDeliveryFacade {
             meal = new Sauce(meal);
         if (side)
             meal = new Side(meal);
+        // Add all info to the orderInfo
         orderInfo.setCustomer(customer);
         orderInfo.setRestaurant(restaurant);
-        orderInfo.setDriver(cppFoodDelivery.getDrivers().get(0)); // Implement method that gets a driver during their shift that's in the county
+        try {
+            orderInfo.setDriver(cppFoodDelivery.lookForDriver("INSERT PICKUP TIME HERE", restaurant.getCounty())); // Implement method that gets a driver during their shift that's in the county
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        // I am not sure if you wanted the possibility of adding multiple meals to one order or not but it is not implemented here
         List<Meal> mealList = new ArrayList<>();
         mealList.add(meal);
         orderInfo.setFoodItems(mealList);
@@ -712,19 +809,70 @@ class Side extends Meal {
 class Main{
     public static void main(String[] args){
         CPPFoodDelivery cppFoodDelivery = new CPPFoodDelivery();
-        Customers customer1 = new Customers("name", "address", "county", "None");
+        Customers customer1 = new Customers("customer1", "address1", "LA County", "None");
+        Customers customer2 = new Customers("customer2", "address2", "LA County", "Paleo");
+        Customers customer3 = new Customers("customer3", "address3", "LA County", "Vegan");
+        Customers customer4 = new Customers("customer4", "address4", "LA County", "Nut Allergy");
+        Customers customer5 = new Customers("customer5", "address5", "Orange County", "None");
+        Customers customer6 = new Customers("customer6", "address6", "Orange County", "Paleo");
+        Customers customer7 = new Customers("customer7", "address7", "Orange County", "Vegan");
+        Customers customer8 = new Customers("customer8", "address8", "San Bernardino County", "Nut Allergy");
+        Customers customer9 = new Customers("customer9", "address9", "San Bernardino County", "None");
+        Customers customer10 = new Customers("customer10", "address10", "San Bernardino County", "None");
+
         Menu menu1 = new Menu();
         menu1.createRandomMenu();
-        Restaurants restaurant1 = new Restaurants("name", "address", "county", "hours", "cuisineType", menu1);
-        Drivers driver1 = new Drivers("name", "address", "county");
+        Restaurants restaurant1 = new Restaurants("restaurant1", "address", "LA County", "8:00-20:00", "cuisineType", menu1);
+        Menu menu2 = new Menu();
+        menu2.createRandomMenu();
+        Restaurants restaurant2 = new Restaurants("restaurant2", "address", "LA County", "8:00-12:00", "cuisineType", menu2);
+        Menu menu3 = new Menu();
+        menu3.createRandomMenu();
+        Restaurants restaurant3 = new Restaurants("restaurant3", "address", "Orange County", "12:00-16:00", "cuisineType", menu3);
+        Menu menu4 = new Menu();
+        menu4.createRandomMenu();
+        Restaurants restaurant4 = new Restaurants("restaurant4", "address", "San Bernardino County", "8:00-20:00", "cuisineType", menu4);
+
+        Drivers driver1 = new Drivers("driver1", "address", "county", "FIRST");
+        Drivers driver2 = new Drivers("driver2", "address", "county", "SECOND");
+        Drivers driver3 = new Drivers("driver3", "address", "county", "THIRD");
+        Drivers driver4 = new Drivers("driver4", "address", "county", "FIRST");
+        Drivers driver5 = new Drivers("driver5", "address", "county", "SECOND");
+        Drivers driver6 = new Drivers("driver6", "address", "county", "THIRD");
+        Drivers driver7 = new Drivers("driver7", "address", "county", "FIRST");
+        Drivers driver8 = new Drivers("driver8", "address", "county", "SECOND");
 
         cppFoodDelivery.registerCustomer(customer1);
+        cppFoodDelivery.registerCustomer(customer2);
+        cppFoodDelivery.registerCustomer(customer3);
+        cppFoodDelivery.registerCustomer(customer4);
+        cppFoodDelivery.registerCustomer(customer5);
+        cppFoodDelivery.registerCustomer(customer6);
+        cppFoodDelivery.registerCustomer(customer7);
+        cppFoodDelivery.registerCustomer(customer8);
+        cppFoodDelivery.registerCustomer(customer9);
+        cppFoodDelivery.registerCustomer(customer10);
         cppFoodDelivery.registerRestaurant(restaurant1);
+        cppFoodDelivery.registerRestaurant(restaurant2);
+        cppFoodDelivery.registerRestaurant(restaurant3);
+        cppFoodDelivery.registerRestaurant(restaurant4);
         cppFoodDelivery.registerDriver(driver1);
+        cppFoodDelivery.registerDriver(driver2);
+        cppFoodDelivery.registerDriver(driver3);
+        cppFoodDelivery.registerDriver(driver4);
+        cppFoodDelivery.registerDriver(driver5);
+        cppFoodDelivery.registerDriver(driver6);
+        cppFoodDelivery.registerDriver(driver7);
+        cppFoodDelivery.registerDriver(driver8);
+
+
 
         FoodDeliveryFacade facade = new FoodDeliveryFacade(cppFoodDelivery);
-        OrderInfo order = facade.orderMeal(customer1, restaurant1, 1, "Paleo", Boolean.TRUE, Boolean.TRUE, Boolean.TRUE);
-        System.out.println(order);
+        OrderInfo order1 = facade.orderMeal(customer1, restaurant1, 1, Boolean.TRUE, Boolean.TRUE, Boolean.TRUE);
+        OrderInfo order2 = facade.orderMeal(customer2, restaurant1, 2, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE);
+        OrderInfo order3 = facade.orderMeal(customer3, restaurant2, 3, Boolean.TRUE, Boolean.FALSE, Boolean.FALSE);
+        OrderInfo order4 = facade.orderMeal(customer4, restaurant3, 4, Boolean.FALSE, Boolean.TRUE, Boolean.FALSE);
+        OrderInfo order5 = facade.orderMeal(customer5, restaurant4, 1, Boolean.FALSE, Boolean.FALSE, Boolean.TRUE);
     }
 }
 
