@@ -79,11 +79,9 @@ class Restaurants implements Member {
         Date pickup = parser.parse(time);
         Date start = this.startHours;
         Date end = this.endHours;
-        if (start.before(pickup))
-            return Boolean.FALSE;
-        if (end.after(pickup))
-            return Boolean.FALSE;
-        return Boolean.TRUE;
+        if (start.before(pickup) && end.after(pickup))
+            return Boolean.TRUE;
+        return Boolean.FALSE;
     }
 
     @Override
@@ -139,11 +137,9 @@ class Drivers implements Member {
         Date pickup = parser.parse(time);
         Date start = shift.getStart();
         Date end = shift.getEnd();
-        if (start.before(pickup))
-            return Boolean.FALSE;
-        if (end.after(pickup))
-            return Boolean.FALSE;
-        return Boolean.TRUE;
+        if (start.before(pickup) && end.after(pickup))
+            return Boolean.TRUE;
+        return Boolean.FALSE;
     }
 
     @Override
@@ -246,19 +242,19 @@ class OrderManagementSystem {
 
     public String getCurrentTime() {
         LocalDateTime current = LocalDateTime.now();
-        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("HH:mm a");
         return current.format(formatting);
     }
 
     public String getPickupTime() {
         LocalDateTime pickupTime = LocalDateTime.now().plusMinutes(15);
-        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("HH:mm a");
         return pickupTime.format(formatting);
     }
 
     private String getDeliveryTime() {
         LocalDateTime deliveryTime = LocalDateTime.now().plusMinutes(45);
-        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("HH:mm a");
         return deliveryTime.format(formatting);
     }
 
@@ -352,7 +348,7 @@ class CPPFoodDelivery { //Aaron: please implement methods that register the rest
                 return d;
             }
         }
-        return null;
+        return new Drivers("No Driver", "", "", "FIRST");
     }
 
     public void registerRestaurant(Restaurants restaurant) {
@@ -817,7 +813,7 @@ class Side extends Meal {
 
 
 class Main{
-    public static void main(String[] args){
+    public static void main(String[] args) {
         CPPFoodDelivery cppFoodDelivery = new CPPFoodDelivery();
         OrderManagementSystem orderManagementSystem = new OrderManagementSystem();
         Customers customer1 = new Customers("customer1", "address1", "LA County", "None");
@@ -844,14 +840,14 @@ class Main{
         menu4.createRandomMenu();
         Restaurants restaurant4 = new Restaurants("restaurant4", "address", "San Bernardino County", "8:00-20:00", "cuisineType", menu4);
 
-        Drivers driver1 = new Drivers("driver1", "address", "county", "FIRST");
-        Drivers driver2 = new Drivers("driver2", "address", "county", "SECOND");
-        Drivers driver3 = new Drivers("driver3", "address", "county", "THIRD");
-        Drivers driver4 = new Drivers("driver4", "address", "county", "FIRST");
-        Drivers driver5 = new Drivers("driver5", "address", "county", "SECOND");
-        Drivers driver6 = new Drivers("driver6", "address", "county", "THIRD");
-        Drivers driver7 = new Drivers("driver7", "address", "county", "FIRST");
-        Drivers driver8 = new Drivers("driver8", "address", "county", "SECOND");
+        Drivers driver1 = new Drivers("driver1", "address", "LA County", "FIRST");
+        Drivers driver2 = new Drivers("driver2", "address", "LA County", "SECOND");
+        Drivers driver3 = new Drivers("driver3", "address", "LA County", "THIRD");
+        Drivers driver4 = new Drivers("driver4", "address", "Orange County", "FIRST");
+        Drivers driver5 = new Drivers("driver5", "address", "Orange County", "SECOND");
+        Drivers driver6 = new Drivers("driver6", "address", "Orange County", "THIRD");
+        Drivers driver7 = new Drivers("driver7", "address", "San Bernardino County", "FIRST");
+        Drivers driver8 = new Drivers("driver8", "address", "San Bernardino County", "SECOND");
 
         cppFoodDelivery.registerCustomer(customer1);
         cppFoodDelivery.registerCustomer(customer2);
