@@ -1,3 +1,5 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -168,15 +170,21 @@ class orderManagementSystem {
     }
 
     private String getCurrentTime() {
-        return "1:00PM";
+        LocalDateTime current = LocalDateTime.now();
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        return current.format(formatting);
     }
 
     private String getPickupTime() {
-        return "1:15PM";
+        LocalDateTime pickupTime = LocalDateTime.now().plusMinutes(15);
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        return pickupTime.format(formatting);
     }
 
     private String getDeliveryTime() {
-        return "1:45PM";
+        LocalDateTime deliveryTime = LocalDateTime.now().plusMinutes(45);
+        DateTimeFormatter formatting = DateTimeFormatter.ofPattern("hh:mm a");
+        return deliveryTime.format(formatting);
     }
 
 
